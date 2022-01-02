@@ -1,0 +1,2278 @@
+---
+title: "People Analytics"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: cosmo
+    logo: favicon_48x48.png
+    favicon: favicon_48x48.png
+---
+
+<style>                     
+.navbar {
+  background-color:#003D79;
+  border-color:white;
+}
+.navbar-brand {
+color:white!important;
+}
+</style>   
+
+<style type="text/css">0
+
+.chart-title {  /* chart_title  */
+   font-size: 15px
+
+</style>
+
+```{r setup, include=FALSE}
+
+library(rapportools)
+library(shiny)
+library(DT)
+library(tidyverse)
+library(tidytext)
+library(wordcloud2)
+library(ggplot2)
+library(ggthemes)
+library(viridisLite)
+library(dplyr)
+library(plotly)
+library(quantmod)
+library(highcharter)
+library(tidyverse)
+library(ggplot2)
+library(corrplot) 
+library(GGally)
+library(readr)  
+library(dplyr)  
+library(crayon) 
+library(modeest)
+library(readxl)
+library(ggthemes)
+library(reshape)
+library(scales)
+library(gganimate)
+theme_set(theme_bw())
+library(gapminder)
+library(gifski)
+
+
+
+df = read_excel('df_rrhh_2.xlsx')
+
+
+
+df_doble_eje = df %>% select(empleado, sector_res, total_faltas, hs_extra_50, hs_extra_100) %>% group_by(sector_res) %>% 
+  summarise(faltas = sum(total_faltas),
+            hs_extra_al_50 = sum(hs_extra_50),
+            hs_extra_al_100 = sum(hs_extra_100),
+            n = n())
+
+
+
+
+```
+
+
+
+
+Estructura
+=====================================
+
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+Column {data-width=10%} 
+-----------------------------------------------------------
+
+### **Descripción: **
+
+*Utilizaremos solo el data set filtrado por empleados que durante el periodo analizado han tenido _al menos_ una hora extra o ausencia*
+
+_En esta primera pagina del Dashboard podemos visualizar parte de la estructura de la empresa, un TreeMap de la cantidad de empleados por sector, dos BoxPlot de medidas de tendencia central de años de antigüedad y edades por sector y, por ultimo, un PieChart por cantidad de empleados hombres y mujeres_
+
+
+Column {data-width=50%}
+-----------------------------------------------------------------------
+
+### ***TreeMap*** {data-height=40%}
+
+
+
+
+
+```{r}
+
+
+
+df_c = read_excel('df_rrhh_completo.xlsx')
+
+df_c_edit = df_c %>% select(mes_ausencia, sector_res,  hs_extra_50, hs_extra_100) %>% group_by(sector_res, mes_ausencia) %>% 
+  summarise(
+            hs_extra_al_50 = sum(hs_extra_50),
+            hs_extra_al_100 = sum(hs_extra_100),
+            n = n())
+
+
+
+
+df_c_edit$mes[df_c_edit$mes_ausencia == 1] = "Ene"
+df_c_edit$mes[df_c_edit$mes_ausencia == 2] = "Feb"
+df_c_edit$mes[df_c_edit$mes_ausencia == 3] = "Mar"
+df_c_edit$mes[df_c_edit$mes_ausencia == 4] = "Abr"
+df_c_edit$mes[df_c_edit$mes_ausencia == 5] = "May"
+df_c_edit$mes[df_c_edit$mes_ausencia == 6] = "Jun"
+df_c_edit$mes[df_c_edit$mes_ausencia == 7] = "Jul"
+df_c_edit$mes[df_c_edit$mes_ausencia == 8] = "Ago"
+df_c_edit$mes[df_c_edit$mes_ausencia == 9] = "Sep"
+df_c_edit$mes[df_c_edit$mes_ausencia == 10] = "Oct"
+df_c_edit$mes[df_c_edit$mes_ausencia == 11] = "Nov"
+df_c_edit$mes[df_c_edit$mes_ausencia == 12] = "Dic"
+
+
+
+
+df_sect = df_c_edit %>%  select(sector_res, n, hs_extra_al_100, hs_extra_al_50) %>%  group_by(sector_res) %>%  summarise(total_empleados = sum(n),
+                                                                                                                         total_hs_extra_50 = sum(hs_extra_al_50),
+                                                                                                                         total_hs_extra_100 = sum(hs_extra_al_100))
+
+library(treemap)
+library(flexdashboard)
+library(plotly)
+library(highcharter)
+library(treemap)
+library(knitr)
+library(scales)
+library(glue)
+library(googleVis)
+library(randomcoloR)
+library(treemapify)
+library(cluster)
+library(factoextra)
+library(NbClust)
+library(tidyr)
+
+library(plotly)
+
+df_empleados = read_excel('datos_empleados.xlsx')
+
+
+
+p <- plot_ly(
+  df_doble_eje,
+  labels = ~ sector_res,
+  parents = NA,
+  values = ~ n,
+  type = 'treemap',
+  hoverinfo = 'text',
+ 
+        textinfo = 'label+value',
+        insidetextfont = list(color = 'white'),
+  text = ~paste('Empleados:', n, '\nFaltas:' ,faltas, '\nHs Extra 50:', hs_extra_al_50, '\nHs Extra 100:', hs_extra_al_100) 
+  
+)
+
+p 
+
+
+```
+
+### ***BoxPlot Antiguedad por Sector*** {data-height=60%}
+
+
+```{r}
+
+
+
+library(lubridate)
+
+hoy = today()
+
+
+df_empleados = read_excel('datos_empleados.xlsx')
+
+
+
+
+
+df_empleados$`FECHA NACIMIENTO` = as.Date(df_empleados$`FECHA NACIMIENTO`)
+
+df_empleados$`FECHA DE INGRESO` = as.Date(df_empleados$`FECHA DE INGRESO`)
+
+df_empleados$edad = round(as.numeric(hoy - df_empleados$`FECHA NACIMIENTO`)/365,0)
+
+df_empleados$antiguedad = round(as.numeric(hoy - df_empleados$`FECHA DE INGRESO`)/365,0)
+
+
+
+df_empleados_final = inner_join(df_empleados, df, by = 'legajo')
+
+
+df_empleados_bx = df_empleados %>%  filter(sector_res != c('LOGISTICA', 'COMPRAS'))
+
+
+
+df_empleados_bx$Departamento = df_empleados_bx$sector_res
+
+
+
+df_empleados_bx = df_empleados %>%  filter(sector_res != c('LOGISTICA', 'COMPRAS', 'GCIA'))
+
+
+
+df_empleados_bx$Departamento = df_empleados_bx$sector_res
+
+bx = ggplot(df_empleados_bx, aes(x=Departamento, y = antiguedad, fill = Departamento)) + 
+  geom_boxplot(alpha = 0.7) +
+  geom_dotplot(binaxis = 'y', stackdir = 'center' ,dotsize = .2, col = 'darkgray') +
+
+  xlab('Sectores') +
+  ylab('Años de Antiguedad') +
+  ggtitle('Boxplot Años Antiguedad por Sector') +
+  theme(legend.direction = "horizontal",
+        plot.title = element_text(hjust=0.5),
+        plot.background = element_rect(fill = "white"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) 
+
+ggplotly(bx) 
+
+
+
+
+
+
+```
+
+Column {data-width=40%}
+-----------------------------------------------------------------------
+
+### ***BoxPlot Edades por Sector***  {data-height=35%}
+
+
+```{r}
+
+
+
+library(lubridate)
+
+hoy = today()
+
+
+df_empleados = read_excel('datos_empleados.xlsx')
+
+
+
+
+
+df_empleados$`FECHA NACIMIENTO` = as.Date(df_empleados$`FECHA NACIMIENTO`)
+
+df_empleados$`FECHA DE INGRESO` = as.Date(df_empleados$`FECHA DE INGRESO`)
+
+df_empleados$edad = round(as.numeric(hoy - df_empleados$`FECHA NACIMIENTO`)/365,0)
+
+df_empleados$antiguedad = round(as.numeric(hoy - df_empleados$`FECHA DE INGRESO`)/365,0)
+
+
+
+df_empleados_final = inner_join(df_empleados, df, by = 'legajo')
+
+
+df_empleados_bx = df_empleados %>%  filter(sector_res != c('LOGISTICA', 'COMPRAS'))
+
+
+
+df_empleados_bx$Departamento = df_empleados_bx$sector_res
+
+
+
+bx = ggplot(df_empleados_bx, aes(x=Departamento, y = edad, fill = Departamento)) + 
+  geom_boxplot(alpha = 0.7) +
+  geom_dotplot(binaxis = 'y', stackdir = 'center' ,dotsize = .2, col = 'darkgray') +
+  xlab('Sectores') +
+  ylab('Edades') +
+  ggtitle('Boxplot Edades por Sector') +
+  theme(legend.direction = "horizontal",
+        plot.title = element_text(hjust=0.5),
+        plot.background = element_rect(fill = "white"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+ggplotly(bx)
+
+
+
+
+```
+<br>
+
+
+### ***Pie Chart Genero***  {data-height=65%}
+
+
+```{r}
+
+
+colors <- c('#e81cff', '#1c8aff')
+
+
+
+
+data = data.frame(cantidad = c(52,40) ,genero = c('Mujer', 'Hombre'))
+
+
+
+fig <- plot_ly(data, labels = ~genero, values = ~cantidad, type = 'pie',
+        textposition = 'inside',
+        textinfo = 'label+percent',
+        insidetextfont = list(color = '#FFFFFF', width = 3, size = 0.1),
+        hoverinfo = 'text',
+        text = ~paste('Cantidad', cantidad),
+        marker = list(colors = colors,
+                      line = list(color = '#FFFFFF', width = 1)),
+        showlegend = FALSE)
+fig <- fig %>% layout(title = 'Composicion por genero',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+Ausentismo {data-orientation=rows}
+=====================================
+
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+
+Row  {data-height=375} 
+-----------------------------------------------------------------------
+
+### ***Pie Chart Tipos de Ausencias***
+
+```{r}
+
+
+
+df_faltas_pie = df_c %>% group_by(tipo_ausencia) %>% summarise(total = n()) %>% filter(total > 3)
+
+
+fig <- df_faltas_pie %>% plot_ly(labels = ~tipo_ausencia, values = ~total)
+fig <- fig %>% add_pie(hole = 0.6)
+fig <- fig %>% layout(title = "Tipos de Ausencias",  showlegend = TRUE,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)) %>% 
+  add_annotations(
+    xref="paper",
+    yref="paper",
+    x=1.3,
+    y=-0,
+    text="Tipos de Ausencia anual\ntotal de la empresa\ncon una frecuenca\nmayor a 3",
+    showarrow= F
+  )
+
+fig
+
+
+
+
+
+
+``` 
+
+### ***Box Plot Faltas por Edades***
+
+```{r}
+
+
+df_empleados_bx = df_empleados_bx %>%  mutate (edades = case_when(
+  between(df_empleados_bx$edad, 0, 25) ~ '25 o menos',
+  between(df_empleados_bx$edad, 26, 50) ~ '26 a 50',
+  between(df_empleados_bx$edad, 51, 75) ~ '51 a 75',
+  TRUE  ~ 'v'
+)
+)
+
+
+
+
+
+df_box = df_c %>% select(empleado ) %>% group_by(empleado) %>% 
+  summarise(
+            n = n())
+
+
+colnames(df_empleados_bx)[1] = 'empleado'
+
+
+df_empleados_boxplot = inner_join(df_empleados_bx, df_box, by = 'empleado')
+
+colnames(df_empleados_boxplot)[20] = 'Edades'
+
+
+bx = ggplot(df_empleados_boxplot, aes(x=Edades, y = n, fill = Edades)) + 
+  geom_boxplot(alpha = 0.7) +
+  geom_dotplot(binaxis = 'y', stackdir = 'center' ,dotsize = .2, col = 'darkgray') +
+  xlab('Edades') +
+  ylab('Faltas') +
+  ggtitle('Boxplot Faltas por Edades') +
+  theme(legend.direction = "horizontal",
+        plot.title = element_text(hjust=0.5),
+        plot.background = element_rect(fill = "white"),
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+ggplotly(bx) 
+
+
+
+
+
+
+
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### ***Serie Temporal Faltas Mensuales por Sector***
+
+```{r}
+
+
+
+
+df_c = read_excel('df_rrhh_completo.xlsx')
+
+
+
+
+df_c_edit = df_c %>% select(mes_ausencia, sector_res,  hs_extra_50, hs_extra_100, empleado) %>% group_by(sector_res, mes_ausencia) %>% 
+  summarise(
+            hs_extra_al_50 = sum(hs_extra_50),
+            hs_extra_al_100 = sum(hs_extra_100),
+            n = n())
+
+
+
+df_c_mapa = df_c %>% select(sector_res,  empleado, mes_ausencia) %>% group_by(sector_res, mes_ausencia, empleado) %>% 
+  summarise(n = n())
+
+
+
+
+
+df_c_edit$mes[df_c_edit$mes_ausencia == 1] = "Ene"
+df_c_edit$mes[df_c_edit$mes_ausencia == 2] = "Feb"
+df_c_edit$mes[df_c_edit$mes_ausencia == 3] = "Mar"
+df_c_edit$mes[df_c_edit$mes_ausencia == 4] = "Abr"
+df_c_edit$mes[df_c_edit$mes_ausencia == 5] = "May"
+df_c_edit$mes[df_c_edit$mes_ausencia == 6] = "Jun"
+df_c_edit$mes[df_c_edit$mes_ausencia == 7] = "Jul"
+df_c_edit$mes[df_c_edit$mes_ausencia == 8] = "Ago"
+df_c_edit$mes[df_c_edit$mes_ausencia == 9] = "Sep"
+df_c_edit$mes[df_c_edit$mes_ausencia == 10] = "Oct"
+df_c_edit$mes[df_c_edit$mes_ausencia == 11] = "Nov"
+df_c_edit$mes[df_c_edit$mes_ausencia == 12] = "Dic"
+
+					
+											
+grafico = plot_ly()  %>%					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SERVICIOS'], y = ~df_c_edit$n[df_c_edit$sector_res == 'SERVICIOS'], name = "SERVICIOS", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SERVICIOS'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'SERVICIOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SERVICIOS'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'RRHH'], y = ~df_c_edit$n[df_c_edit$sector_res == 'RRHH'], name = "RRHH", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'RRHH'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'RRHH'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'RRHH'])) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'AT. CTE.'], y = ~df_c_edit$n[df_c_edit$sector_res == 'AT. CTE.'], name = "AT. CTE.", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'AT. CTE.'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'AT. CTE.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'AT. CTE.'])) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PROMOS'], y = ~df_c_edit$n[df_c_edit$sector_res == 'PROMOS'], name = "PROMOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PROMOS'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'PROMOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PROMOS'])) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRESIDENCIA'], y = ~df_c_edit$n[df_c_edit$sector_res == 'PRESIDENCIA'], name = "PRESIDENCIA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRESIDENCIA'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'ADM.'], y = ~df_c_edit$n[df_c_edit$sector_res == 'ADM.'], name = "ADM.", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'ADM.'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'ADM.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'ADM.'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'FISCA'], y = ~df_c_edit$n[df_c_edit$sector_res == 'FISCA'], name = "FISCA", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'FISCA'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'FISCA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'FISCA'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SUCURSALES'], y = ~df_c_edit$n[df_c_edit$sector_res == 'SUCURSALES'], name = "SUCURSALES", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SUCURSALES'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'SUCURSALES'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SUCURSALES'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'GREMIAL'], y = ~df_c_edit$n[df_c_edit$sector_res == 'GREMIAL'], name = "GREMIAL", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'GREMIAL'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'GREMIAL'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'GREMIAL'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SISTEMAS'], y = ~df_c_edit$n[df_c_edit$sector_res == 'SISTEMAS'], name = "SISTEMAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SISTEMAS'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'SISTEMAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SISTEMAS'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'JURIDICOS'], y = ~df_c_edit$n[df_c_edit$sector_res == 'JURIDICOS'], name = "JURIDICOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'JURIDICOS'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'JURIDICOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'JURIDICOS'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'LOGISTICA'], y = ~df_c_edit$n[df_c_edit$sector_res == 'LOGISTICA'], name = "LOGISTICA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'LOGISTICA'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'LOGISTICA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'LOGISTICA'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'TESO'], y = ~df_c_edit$n[df_c_edit$sector_res == 'TESO'], name = "TESO", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'TESO'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'TESO'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'TESO'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'COMPRAS'], y = ~df_c_edit$n[df_c_edit$sector_res == 'COMPRAS'], name = "COMPRAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'COMPRAS'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'COMPRAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'COMPRAS'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'CONTABLE'], y = ~df_c_edit$n[df_c_edit$sector_res == 'CONTABLE'], name = "CONTABLE", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'CONTABLE'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'CONTABLE'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'CONTABLE'] )) %>%					
+  					
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRENSA'], y = ~df_c_edit$n[df_c_edit$sector_res == 'PRENSA'], name = "PRENSA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),					
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRENSA'], '<br>Faltas:', df_c_edit$n[df_c_edit$sector_res == 'PRENSA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRENSA'] )) %>%					
+  					
+       layout(title =  "Faltas Mensuales por Sector", font = list(size = 12, color = 'black'),
+              hovermode = "compare",
+              xaxis = list(title = 'Mes de Ausencia', 					
+                           color = 'black', 					
+                           tickangle = -45, autotick = FALSE, tick0 = 0, tickd = seq(0, 10, 1)), 					
+              yaxis = list (title = 'Total Faltas', color = 'black'), 					
+              paper_bgcolor='white', plot_bgcolor='white')					
+					
+grafico					
+					
+
+
+```
+
+
+
+
+
+
+
+
+
+
+Heath Map
+=====================================
+
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### ***Mapa de Calor Faltas Totales:*** 
+
+
+
+
+
+```{r}
+
+
+
+
+df_heat = df_c_edit 
+
+colnames(df_heat)[5] = 'Faltas' 
+
+hm = ggplot(df_heat, aes(x = as.factor(sector_res), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas por Sector y Mes') +
+  xlab('Sectores') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#b9e4fa", high = "#0b557a") +
+  geom_text(aes(as.factor(sector_res), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+```
+
+
+### ***Servicios*** 
+
+
+```{r}
+
+
+df_c_mapa = df_c %>% select(sector_res,  emple, mes_ausencia) %>% group_by(sector_res, mes_ausencia, emple) %>% 
+  summarise(n = n())
+
+
+
+colnames(df_c_mapa)[4] = 'Faltas' 
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'SERVICIOS', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector SERVICIOS') +
+  xlab('SERVICIOS') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#fab9d0", high = "#f70036")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+
+
+### ***Sucursales*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'SUCURSALES', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector SUCURSALES') +
+  xlab('SUCURSALES') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#e3bce8", high = "#e000ff")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+### ***Tesoreria*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'TESO', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector TESO') +
+  xlab('TESO') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#91d9bb", high = "#00663c")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+### ***S & H*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'S & H', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector S & H') +
+  xlab('S & H') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#e3cf98", high = "#9c7200")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+### ***Fiscalización*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'FISCA', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector FISCA') +
+  xlab('FISCA') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#feffd1", high = "#c3c900")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+
+### ***Administración*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'ADM.', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector ADM.') +
+  xlab('ADM.') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#98e3cd", high = "#00c288")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+
+### ***Promos*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'PROMOS', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector PROMOS') +
+  xlab('PROMOS') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#b88adb", high = "#8100e3")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+
+### ***HR*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'HR', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector HR') +
+  xlab('HR') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#88b8bd", high = "#0d555c")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+### ***Juridicos*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'JURIDICOS', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector JURIDICOS') +
+  xlab('JURIDICOS') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#53b3b8", high = "#0a25c2")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+### ***Compras*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'COMPRAS', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector COMPRAS') +
+  xlab('COMPRAS') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#adf0ae", high = "#1ca661")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+
+```
+
+
+### ***Contable*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'CONTABLE', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector CONTABLE') +
+  xlab('CONTABLE') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#adf0ae", high = "#1ca661")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+### ***Presidencia*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'PRESIDENCIA', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector PRESIDENCIA') +
+  xlab('PRESIDENCIA') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#f7d997", high = "#a8770c")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+### ***Prensa*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'PRENSA', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector PRENSA') +
+  xlab('PRENSA') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#b981db", high = "#6f1aa3")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+
+### ***Logistica*** 
+
+
+```{r}
+
+
+
+
+hm = ggplot(df_c_mapa[df_c_mapa$sector_res == 'LOGISTICA', ], aes(x = as.factor(emple), y = as.factor(mes_ausencia), fill = Faltas)) +
+  geom_tile(aes(text=map(paste('<b>Metricas:</b>', '<br>', '<br>',
+                               '<b>Faltas:</b>',Faltas, '<br>',
+                               '<b>Sector:</b>',as.factor(sector_res), '<br>',
+                               '<b>emple:</b>',as.factor(emple), '<br>',
+                               '<b>Mes:</b>',as.factor(mes_ausencia)),HTML))) +
+  ggtitle('Mapa de Calor de Faltas en Sector LOGISTICA') +
+  xlab('LOGISTICA') +
+  ylab('Mes') +
+  theme_bw() + 
+  scale_fill_gradient(low = "#d498d1", high = "#e600da")  +
+  geom_text(aes(as.factor(emple), as.factor(mes_ausencia), 
+                label = round(Faltas)))
+
+
+ggplotly(hm, tooltip = 'text')
+
+
+
+
+
+```
+
+
+
+Dinámica Faltas y Hs Extras
+=====================================
+
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### ***Grafico Animado de Faltas:*** 
+
+
+
+```{r}
+
+
+
+
+df_c_edit$mes_ausencia = as.integer(df_c_edit$mes_ausencia)
+
+colnames(df_c_edit)[1] = 'Sectores'
+
+plot = df_c_edit %>%
+  ggplot(aes(mes_ausencia, n, colour = Sectores)) +
+  geom_point(alpha = 0.7, show.legend = TRUE, size = 7, width = 2) +
+   scale_x_continuous(breaks = c(1:12)) +
+  scale_y_continuous(breaks = seq(1,27,3)) +
+  labs(title = 'Meses: {frame_time}', x = 'Mes', y = 'Faltas por Sector', subtitle = "Faltas Mensuales por Sector",
+    caption = "Dinamica de las Faltas Mensuales por Sector") +
+  transition_time(mes_ausencia) +
+  shadow_wake(.3)+
+  ease_aes('linear') +
+  theme_minimal()
+
+
+
+
+animate(plot, nframes = 200, height = 700, width = 1000)
+
+
+colnames(df_c_edit)[1] = 'sector_res'
+
+
+
+
+```
+
+
+### ***Grafico Animado de Horas Extras:*** 
+
+
+```{r}
+
+
+df_c_edit$mes_ausencia = as.integer(df_c_edit$mes_ausencia)
+
+colnames(df_c_edit)[1] = 'Sectores'
+
+plot = df_c_edit %>%
+  ggplot(aes(mes_ausencia, hs_extra_al_100 + hs_extra_al_50, colour = Sectores)) +
+  geom_point(alpha = 0.7, show.legend = TRUE, size = 7, width = 2) +
+   scale_x_continuous(breaks = c(1:12)) +
+  labs(title = 'Meses: {frame_time}', x = 'Mes', y = 'Horas Extra por Sector', subtitle = "Horas Extra Mensuales por Sector",
+    caption = "Dinamica de las Horas Extra Mensuales por Sector") +
+  transition_time(mes_ausencia) +
+  shadow_wake(.3)+
+  ease_aes('linear') +
+  theme_minimal()
+
+
+
+
+animate(plot, nframes = 200, height = 700, width = 1000)
+
+
+colnames(df_c_edit)[1] = 'sector_res'
+
+
+
+
+
+
+```
+
+
+
+Horas Extras {data-orientation=rows}
+=====================================
+
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+Row {.tabset}
+-----------------------------------------------------------------------
+
+### ***Horas Extras al 50 y al 100***
+
+```{r}
+
+
+
+
+plot_ly(df_doble_eje) %>%
+    add_trace(x = ~sector_res,
+              y = ~hs_extra_al_100, 
+              type = 'scatter', 
+              mode = 'lines', 
+              name = "Hs extras al 100", 
+              marker = list(color = 'black', width = 3),
+              line = list(color = '#f21111', width = 3)) %>%
+    add_trace(x = ~sector_res,
+              y = ~hs_extra_al_50, 
+              type = 'scatter', 
+              mode = 'lines', 
+              name = "Hs extras al 50", 
+              marker = list(color = 'black', width = 3),
+              line = list(color = 'blue', width = 3)) %>%
+  layout(title = 'Horas Extras',
+         hovermode = "compare",
+         yaxis = list(side = 'left', title = 'Hs Extras por Sector',showgrid = FALSE, zeroline = FALSE, range = c(min(df_doble_eje$hs_extra_al_50) - 10, max(df_doble_eje$hs_extra_al_50 + 50))),
+         xaxis = list( title = 'Sectores'),
+        legend = list(x = 1.04))
+
+
+
+
+
+
+```
+
+### ***Horas Extras al 50***
+
+```{r}
+
+			
+grafico = plot_ly()  %>%				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SERVICIOS'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SERVICIOS'], name = "SERVICIOS", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SERVICIOS'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SERVICIOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SERVICIOS'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'RRHH'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'RRHH'], name = "RRHH", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'RRHH'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'RRHH'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'RRHH'])) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'AT. CTE.'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'AT. CTE.'], name = "AT. CTE.", line = list(shape = "spline"), hoverinfo = 'text',visible = 'legendonly', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'AT. CTE.'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'AT. CTE.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'AT. CTE.'])) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PROMOS'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PROMOS'], name = "PROMOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text',visible = 'legendonly', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PROMOS'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PROMOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PROMOS'])) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRESIDENCIA'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRESIDENCIA'], name = "PRESIDENCIA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRESIDENCIA'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'ADM.'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'ADM.'], name = "ADM.", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'ADM.'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'ADM.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'ADM.'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'FISCA'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'FISCA'], name = "FISCA", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'FISCA'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'FISCA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'FISCA'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SUCURSALES'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SUCURSALES'], name = "SUCURSALES", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SUCURSALES'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SUCURSALES'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SUCURSALES'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'GREMIAL'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'GREMIAL'], name = "GREMIAL", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'GREMIAL'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'GREMIAL'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'GREMIAL'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SISTEMAS'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SISTEMAS'], name = "SISTEMAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SISTEMAS'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SISTEMAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'SISTEMAS'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'JURIDICOS'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'JURIDICOS'], name = "JURIDICOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'JURIDICOS'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'JURIDICOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'JURIDICOS'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'LOGISTICA'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'LOGISTICA'], name = "LOGISTICA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'LOGISTICA'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'LOGISTICA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'LOGISTICA'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'TESO'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'TESO'], name = "TESO", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'TESO'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'TESO'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'TESO'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'COMPRAS'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'COMPRAS'], name = "COMPRAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'COMPRAS'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'COMPRAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'COMPRAS'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'CONTABLE'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'CONTABLE'], name = "CONTABLE", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'CONTABLE'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'CONTABLE'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'CONTABLE'] )) %>%				
+  				
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRENSA'], y = ~df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRENSA'], name = "PRENSA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),				
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRENSA'], '<br>Faltas:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRENSA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_50[df_c_edit$sector_res == 'PRENSA'] )) %>%				
+  				
+       layout(title =  "Horas Extras al 50 por Sector", font = list(size = 12, color = 'black'), 
+              hovermode = "compare",
+              xaxis = list(title = 'Mes', 				
+                           color = 'black', 				
+                           tickangle = -45, autotick = FALSE, tick0 = 0, tickd = seq(0, 10, 1)), 				
+              yaxis = list (title = 'Horas Extras al 50', color = 'black'), 				
+              paper_bgcolor='white', plot_bgcolor='white')				
+				
+grafico	
+
+
+
+
+
+
+```
+
+### ***Horas Extra al 100***
+
+```{r}
+
+
+df_c_edit$hs_extra_totales = df_c_edit$hs_extra_al_50 + df_c_edit$hs_extra_al_100
+
+
+grafico = plot_ly()  %>%
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SERVICIOS'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SERVICIOS'], name = "SERVICIOS", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SERVICIOS'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SERVICIOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SERVICIOS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'RRHH'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'RRHH'], name = "RRHH", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'RRHH'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'RRHH'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'RRHH'])) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'AT. CTE.'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'AT. CTE.'], name = "AT. CTE.", line = list(shape = "spline"), hoverinfo = 'text',visible = 'legendonly', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'AT. CTE.'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'AT. CTE.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'AT. CTE.'])) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PROMOS'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PROMOS'], name = "PROMOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text',visible = 'legendonly', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PROMOS'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PROMOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PROMOS'])) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRESIDENCIA'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PRESIDENCIA'], name = "PRESIDENCIA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PRESIDENCIA'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'ADM.'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'ADM.'], name = "ADM.", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'ADM.'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'ADM.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'ADM.'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'FISCA'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'FISCA'], name = "FISCA", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'FISCA'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'FISCA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'FISCA'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SUCURSALES'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SUCURSALES'], name = "SUCURSALES", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SUCURSALES'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SUCURSALES'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SUCURSALES'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'GREMIAL'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'GREMIAL'], name = "GREMIAL", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'GREMIAL'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'GREMIAL'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'GREMIAL'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SISTEMAS'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SISTEMAS'], name = "SISTEMAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SISTEMAS'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SISTEMAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'SISTEMAS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'JURIDICOS'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'JURIDICOS'], name = "JURIDICOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'JURIDICOS'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'JURIDICOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'JURIDICOS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'LOGISTICA'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'LOGISTICA'], name = "LOGISTICA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'LOGISTICA'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'LOGISTICA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'LOGISTICA'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'TESO'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'TESO'], name = "TESO", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'TESO'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'TESO'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'TESO'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'COMPRAS'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'COMPRAS'], name = "COMPRAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'COMPRAS'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'COMPRAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'COMPRAS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'CONTABLE'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'CONTABLE'], name = "CONTABLE", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'CONTABLE'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'CONTABLE'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'CONTABLE'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRENSA'], y = ~df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PRENSA'], name = "PRENSA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRENSA'], '<br>Faltas:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PRENSA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_al_100[df_c_edit$sector_res == 'PRENSA'] )) %>%
+  
+       layout(title =  "Horas Extras al 100 por Sector", font = list(size = 12, color = 'black'), 
+              hovermode = "compare",
+              xaxis = list(title = 'Mes', 
+                           color = 'black', 
+                           tickangle = -45, autotick = FALSE, tick0 = 0, tickd = seq(0, 10, 1)), 
+              yaxis = list (title = 'Horas Extras al 100', color = 'black'), 
+              paper_bgcolor='white', plot_bgcolor='white')
+
+grafico
+
+
+
+```
+
+### ***Horas Extras Totales***
+
+
+```{r}
+
+
+df_c_edit$hs_extra_totales = df_c_edit$hs_extra_al_50 + df_c_edit$hs_extra_al_100
+
+
+grafico = plot_ly()  %>%
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SERVICIOS'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SERVICIOS'], name = "SERVICIOS", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SERVICIOS'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SERVICIOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SERVICIOS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'RRHH'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'RRHH'], name = "RRHH", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'RRHH'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'RRHH'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'RRHH'])) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'AT. CTE.'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'AT. CTE.'], name = "AT. CTE.", line = list(shape = "spline"), hoverinfo = 'text',visible = 'legendonly', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'AT. CTE.'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'AT. CTE.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'AT. CTE.'])) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PROMOS'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PROMOS'], name = "PROMOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text',visible = 'legendonly', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PROMOS'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PROMOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PROMOS'])) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRESIDENCIA'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PRESIDENCIA'], name = "PRESIDENCIA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PRESIDENCIA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PRESIDENCIA'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'ADM.'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'ADM.'], name = "ADM.", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'ADM.'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'ADM.'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'ADM.'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'FISCA'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'FISCA'], name = "FISCA", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'FISCA'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'FISCA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'FISCA'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SUCURSALES'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SUCURSALES'], name = "SUCURSALES", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SUCURSALES'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SUCURSALES'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SUCURSALES'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'GREMIAL'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'GREMIAL'], name = "GREMIAL", line = list(shape = "spline"), hoverinfo = 'text', visible = 'legendonly',marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'GREMIAL'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'GREMIAL'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'GREMIAL'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'SISTEMAS'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SISTEMAS'], name = "SISTEMAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'SISTEMAS'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SISTEMAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'SISTEMAS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'JURIDICOS'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'JURIDICOS'], name = "JURIDICOS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'JURIDICOS'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'JURIDICOS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'JURIDICOS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'LOGISTICA'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'LOGISTICA'], name = "LOGISTICA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'LOGISTICA'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'LOGISTICA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'LOGISTICA'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'TESO'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'TESO'], name = "TESO", line = list(shape = "spline"), hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'TESO'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'TESO'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'TESO'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'COMPRAS'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'COMPRAS'], name = "COMPRAS", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'COMPRAS'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'COMPRAS'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'COMPRAS'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'CONTABLE'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'CONTABLE'], name = "CONTABLE", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'CONTABLE'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'CONTABLE'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'CONTABLE'] )) %>%
+  
+  add_lines(x = ~df_c_edit$mes_ausencia[df_c_edit$sector_res == 'PRENSA'], y = ~df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PRENSA'], name = "PRENSA", line = list(shape = "spline"), visible = 'legendonly', hoverinfo = 'text', marker = list(color = 'line', width = 1.5),
+        text = ~paste('Sector:', df_c_edit$sector_res[df_c_edit$sector_res == 'PRENSA'], '<br>Faltas:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PRENSA'], '<br>Hs Extra 50:', df_c_edit$hs_extra_totales[df_c_edit$sector_res == 'PRENSA'] )) %>%
+  
+       layout(title =  "Horas Extras Totales por Sector", font = list(size = 12, color = 'black'), 
+              hovermode = "compare",
+              xaxis = list(title = 'Mes', 
+                           color = 'black', 
+                           tickangle = -45, autotick = FALSE, tick0 = 0, tickd = seq(0, 10, 1)), 
+              yaxis = list (title = 'Horas Extras Totales', color = 'black'), 
+              paper_bgcolor='white', plot_bgcolor='white')
+
+grafico
+
+
+
+```
+
+
+
+
+Row  {data-height=375}
+-----------------------------------------------------------------------
+
+### ***Proporcion del Total de Horas Extras al 50 por Sector***
+
+```{r}
+
+
+
+fig <- df_doble_eje %>% filter(df_doble_eje$hs_extra_al_50 > 10) %>% plot_ly(labels = ~sector_res, values = ~hs_extra_al_50)
+fig <- fig %>% add_pie(hole = 0.6)
+fig <- fig %>% layout(title = "Proporcion del Total de Horas Extras al 50 por Sector",  showlegend = TRUE,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)) %>% 
+  add_annotations(
+    xref="paper",
+    yref="paper",
+    x=1.1,
+    y=-0,
+    text="Se tuvieron en cuenta\nsectores con mayor a 10\nhoras extras anuales.",
+    showarrow= F
+  )
+
+fig
+
+
+
+
+
+``` 
+
+### ***Proporcion del Total de Horas Extras al 100 por Sector***
+
+```{r}
+
+
+fig <- df_doble_eje %>% filter(df_doble_eje$hs_extra_al_100 > 10) %>% plot_ly(labels = ~sector_res, values = ~hs_extra_al_100)
+fig <- fig %>% add_pie(hole = 0.6)
+fig <- fig %>% layout(title = "Proporcion del Total de Horas Extras al 100 por Sector",  showlegend = TRUE,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)) %>% 
+  add_annotations(
+    xref="paper",
+    yref="paper",
+    x=1.1,
+    y=-0,
+    text="Se tuvieron en cuenta\nsectores con mayor a 10\nhoras extras anuales.",
+    showarrow= F
+  )
+
+fig
+
+
+
+
+
+```
+
+
+
+
+
+Faltas y Horas Extras
+=======================================================================
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+Column {data-width=10%} 
+-----------------------------------------------------------
+
+### **Descripción: **
+
+_Grafico de Barras donde podemos visualizar la cantidad de faltas en barras y relacionar las Horas Extras por Sector_
+
+_Podemos ver una relación positiva entre las variables_
+
+
+
+Column {data-width=90%}
+-----------------------------------------------------------------------
+
+### ***Horas Extras:*** 
+
+
+```{r}
+
+
+
+         
+
+plot_ly(df_doble_eje) %>%
+  add_trace(x = ~sector_res,
+            y = ~faltas, type = "bar",
+            name = "Faltas",
+            marker = list(color = 'rgb(158,202,225)', 
+                          line = list(color = 'black', 
+                                      width = 1.5))) %>%  
+    add_trace(x = ~sector_res,
+              y = ~hs_extra_al_100, 
+              type = 'scatter', 
+              mode = 'lines', 
+              yaxis = "y2", 
+              name = "Hs extras al 100", 
+              marker = list(color = '#f21111', width = 3),
+              line = list(color = '#f21111', width = 3)) %>%
+        add_trace(x = ~sector_res,
+              y = ~hs_extra_al_100 + hs_extra_al_50, 
+              type = 'scatter', 
+              mode = 'lines', 
+              yaxis = "y2", 
+              name = "Hs extras Totales", 
+              marker = list(color = '#a311f2', width = 3),
+              line = list(color = '#a311f2', width = 2)) %>%
+    add_trace(x = ~sector_res, 
+            y = ~hs_extra_al_50,
+            type = 'scatter',
+            mode = 'lines', 
+            yaxis = "y2", 
+            name = "Hs extras al 50", 
+            marker = list(color = '#1149f2', width = 3),
+            line = list(color = '#1149f2', width = 2)) %>%
+  layout(title = 'Horas Extras',
+         hovermode = "compare",
+         yaxis2 = list(overlaying = "y", side = "right", title = 'Hs Extras', showgrid = FALSE ,zeroline = FALSE, range = c(min(df_doble_eje$hs_extra_al_50) - 10, max(df_doble_eje$hs_extra_al_50 + 450))),
+         yaxis = list(side = 'left', title = 'Faltas',showgrid = FALSE, zeroline = FALSE, range = c(min(df_doble_eje$faltas) - 10, max(df_doble_eje$faltas + 50))),
+         xaxis = list( title = 'Sectores'),
+        legend = list(x = 1.04))
+
+```
+
+
+
+
+
+Scatter Plots
+=====================================
+
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+Column {data-width=50%}
+-----------------------------------------------------------------------
+
+### ***Horas Extras al 50 y Faltas*** 
+
+
+
+
+
+```{r}
+
+vline <- function(x = 0, color = "grey") {
+  list(
+    type = "line", 
+    y0 = 0, 
+    y1 = 1, 
+    yref = "paper",
+    x0 = x, 
+    x1 = x, 
+    line = list(color = color)
+  )
+}
+
+fig <- plot_ly(df_doble_eje, x = ~faltas, y = ~hs_extra_al_50, type = 'scatter', mode = 'markers', size = ~n, color = ~sector_res, colors = 'Paired',
+        sizes = c(15, 70),
+        marker = list(opacity = 0.7, sizemode = 'diameter',line = list(color = 'black', width = 1)),
+        hoverinfo = 'text',
+        text = ~paste('Sector:', sector_res, '<br>Personas:', n, '<br>Faltas:', faltas, '<br>Hs Extra:', hs_extra_al_50)) 
+
+
+fig <- fig %>% layout(
+         xaxis = list(showgrid = TRUE),
+         yaxis = list(showgrid = TRUE),
+         showlegend = TRUE,
+         shapes = list(vline(42))) %>% 
+  add_annotations(
+    x = 41.2,
+    y = 0,
+    text = paste("A partir de las 40\nFaltas podemos ver\nSectores que incrementan\nmucho sus Horas Extras."),
+    xref = "x",
+    yref = "y",
+    arrowhead = 5,
+    arrowhead = 3,
+    arrowsize = 1,
+    showarrow = TRUE,
+    ax = 330,
+    ay = -40)
+
+fig
+
+
+
+
+
+
+
+
+```
+
+### ***Horas Extras al 50 y Faltas*** 
+
+
+```{r}
+
+
+
+pg = ggplot(df_doble_eje, aes(x= faltas, y = hs_extra_al_50,
+                size = n , colors = 'Paired', alpha = 0.7, fill = sector_res)) +
+  geom_point(shape = 21, aes(text=map(paste('<b>Metricas:</b>', '<br>', '<b>Hs Extra:</b>',hs_extra_al_50,
+                                            '<br>', '<b>Faltas:</b>',faltas,
+                                             '<br>', '<b>Sector:</b>',sector_res,
+                                             '<br>', '<b>Personal:</b>',n),HTML))) +
+  scale_colour_hue() +
+  xlab('Faltas') +
+  ylab('Horas Extra') +
+  geom_abline(slope = 1) +
+  theme_bw() + 
+  theme(legend.position = "none") +
+  scale_size(range = c(3, 10)) 
+
+ggplotly(pg, tooltip = "text")
+
+
+
+
+
+```
+
+Column {data-width=50%}
+-----------------------------------------------------------------------
+
+### ***Horas Extras al 100 y Faltas***  
+
+
+```{r}
+
+
+vline <- function(x = 0, color = "grey") {
+  list(
+    type = "line", 
+    y0 = 0, 
+    y1 = 1, 
+    yref = "paper",
+    x0 = x, 
+    x1 = x, 
+    line = list(color = color)
+  )
+}
+
+
+
+fig <- plot_ly(df_doble_eje, x = ~faltas, y = ~hs_extra_al_100, type = 'scatter', mode = 'markers', size = ~n, color = ~sector_res, colors = 'Paired',
+        sizes = c(15, 70),
+        marker = list(opacity = 0.7,symbol = 'circle', sizemode = 'diameter',line = list(color = 'black', width = 1)),
+        hoverinfo = 'text',
+        text = ~paste('Sector:', sector_res, '<br>Personas:', n, '<br>Faltas:', faltas, '<br>Hs Extra:', hs_extra_al_100))
+fig <- fig %>% layout(
+         xaxis = list(showgrid = TRUE),
+         yaxis = list(showgrid = TRUE),
+         showlegend = TRUE,
+         shapes = list(vline(42))) %>% 
+  add_annotations(
+    x = 41.2,
+    y = 0,
+    text = paste("A partir de las 40\nFaltas podemos ver\nSectores que incrementan\nmucho sus Horas Extras."),
+    xref = "x",
+    yref = "y",
+    arrowhead = 5,
+    arrowhead = 3,
+    arrowsize = 1,
+    showarrow = TRUE,
+    ax = 330,
+    ay = -40)
+
+fig
+
+
+
+
+
+```
+<br>
+
+
+### ***Horas Extras al 100 y Faltas***  
+
+
+```{r}
+
+
+
+pg = ggplot(df_doble_eje, aes(x= faltas, y = hs_extra_al_100,
+                size = n , colors = 'Paired', alpha = 0.7, fill = sector_res)) +
+  geom_point(shape = 21, aes(text=map(paste('<b>Metricas:</b>', '<br>', '<b>Hs Extra:</b>',hs_extra_al_100,
+                                            '<br>', '<b>Faltas:</b>',faltas,
+                                             '<br>', '<b>Sector:</b>',sector_res,
+                                             '<br>', '<b>Personal:</b>',n),HTML))) +
+  scale_colour_hue() +
+  xlab('Faltas') +
+  ylab('Horas Extra') +
+  geom_abline(slope = 1) +
+  theme_bw() + 
+  theme(legend.position = "none") +
+  scale_size(range = c(3, 10)) 
+
+ggplotly(pg, tooltip = "text")
+
+
+
+
+
+```
+
+
+
+
+
+
+Análisis de Faltas
+=======================================================================
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+Column {data-width=17%} 
+-----------------------------------------------------------
+
+### **Descripción: **
+
+
+
+_Se utilizara el modelo *ANOVA* para verificar si existe diferencia en el promedio de Faltas por Sector_
+
+_Establecemos como prueba de hipótesis nula que los promedios de Faltas por Sector son iguales, y como alternativa que son distintos._ 
+
+$$H_0 \neq H_a$$
+
+
+_Ejecutamos el modelo *ANOVA* y observamos que el valor probabilistico es menor 0.05._ 
+
+
+```{r}
+df_c_edit$Departamentos = df_c_edit$sector_res
+
+anov = aov(formula = df_c_edit$n ~ df_c_edit$Departamentos)
+
+p_value = summary(anov)[[1]][["Pr(>F)"]][1] 
+
+cat('El P-Value nos arroja\nun valor de:', p_value)
+
+
+
+```
+
+
+$$\rho=0 < \alpha= 0.05$$
+
+$$ \rho < \alpha$$
+
+
+_Podemos verificar que hay diferencia entre los promedios de Faltas por Sector, el P-Valor es menor a Alpha, por lo tanto, rechazamos la hipótesis nula_ 
+
+
+
+
+
+
+Column {data-width=83%}
+-----------------------------------------------------------------------
+
+### ***BoxPlot de Faltas:*** 
+
+
+```{r}
+
+
+df_c_edit$Departamentos = df_c_edit$sector_res
+
+
+bx = ggplot(df_c_edit, aes(x=Departamentos, y = n, fill = Departamentos)) + 
+  geom_boxplot(alpha = 0.7,  medcol = "white", boxlty = 1, whisklty = 1, staplelwd = 4, outpch = 8, outcex = 3) +
+  geom_dotplot(binaxis = 'y', stackdir = 'center' ,dotsize = .2, col = 'darkgray') +
+  stat_summary(fun.y=mean, geom="point", shape=1, size=1, alpha=7, color="black", fill = 'black') +
+  xlab('Sectores') +
+  ylab('Faltas') +
+  ggtitle('Medidas de Tendencia Central de Faltas por Sector') +
+  theme_light()
+
+
+
+
+ggplotly(bx, tooltip="text")
+
+
+```
+
+
+
+
+
+
+
+
+Matriz de Distancia
+=======================================================================
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+
+Column {data-width=10%} 
+-----------------------------------------------------------
+
+### **Descripción: **
+
+_Matriz escalada por empleado teniendo en cuenta faltas y horas extras._
+
+_Los cuadrantes azules indican menor relación entre los empleados y los cuadrantes rojos mayor relación en términos de faltas y horas extras._
+
+
+
+Column {data-width=90%} 
+-----------------------------------------------------------
+
+### ***Matriz de Distancias por Empleado:*** 
+
+
+
+```{r, include=FALSE}
+
+
+df_matrix<-df_doble_eje %>% mutate(index= sector_res )
+
+rownames(df_matrix) = df_doble_eje$sector_res
+
+
+df_matrix$sector_res = NULL
+df_matrix$index = NULL
+df_matrix$n = NULL
+
+
+
+
+
+
+df_matrix = df %>% group_by(emple) %>% summarise(faltas = sum(total_faltas),
+                                                      hs_extra_al_100 = sum(hs_extra_100),
+                                                      hs_extra_al_50 = sum(hs_extra_50),
+                                                      enfermedad = sum(licencia_enfermedad))
+
+emplados = df_matrix$emple
+
+df_matrix$emple = NULL
+
+#normalizar las puntuaciones
+
+
+df_matrix <- scale(df_matrix)
+
+
+
+rownames(df_matrix) = emplados
+
+
+matrix_distancia = fviz_dist(get_dist(df_matrix, method = "euclidean") , gradient = list(low = "red", mid = "white", high = "blue")) + 
+  labs(title = 'Matriz de Distancia por emple', subtitle = "Azul = Menor Relacion, Rojo = Mayor Relacion",
+    caption = "Matriz escalada de faltas y horas extra por emples")
+  theme_light()
+
+
+
+```
+
+
+
+```{r}
+
+
+
+
+
+ggplotly(matrix_distancia) 
+
+
+
+
+
+
+```
+
+
+
+
+
+Ratios
+=======================================================================
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+
+
+
+Column {data-width=70%}
+-----------------------------------------------------------------------
+
+
+
+### ***Bar Plot:*** 
+
+```{r}
+
+
+
+df_sect_nuevo = df_c_edit %>%  
+  select(sector_res, n, hs_extra_al_100, hs_extra_al_50) %>%  group_by(sector_res) %>%  
+  summarise(total_empleados = sum(n),
+            total_hs_extra_50 = sum(hs_extra_al_50),
+            total_hs_extra_100 = sum(hs_extra_al_100),
+            total_faltas = sum(n))
+
+
+
+x = unique(df_c_edit$mes_ausencia)
+
+y = df_c_edit %>% filter(sector_res == 'ADM.') %>% group_by(mes_ausencia) %>% summarise(ratio = round(((hs_extra_al_50 + hs_extra_al_100 )/ n),0))
+
+y = y %>% add_row(mes_ausencia = 2, ratio = 0)
+
+
+
+y1 = round((df_c_edit %>% filter(sector_res == 'SERVICIOS') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+y2 = round((df_c_edit %>% filter(sector_res == 'SUCURSALES') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+  
+y3 = round((df_c_edit %>% filter(sector_res == 'TESO') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+  
+y4 = round((df_c_edit %>% filter(sector_res == 'FISCA') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+y5 = round((df_c_edit %>% filter(sector_res == 'S & H') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+
+y6 = round((df_c_edit %>% filter(sector_res == 'PROMOS') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+y7 = round((df_c_edit %>% filter(sector_res == 'AT. CTE.') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+
+y8 = round((df_c_edit %>% filter(sector_res == 'HR') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+
+y9 = round((df_c_edit %>% filter(sector_res == 'CONTABLE') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+
+y10 = round((df_c_edit %>% filter(sector_res == 'SISTEMAS') %>% group_by(mes_ausencia) %>% summarise(ratio = ((hs_extra_al_50 + hs_extra_al_100 )/ n))),0)
+
+y10$ratio[is.na(y10$ratio)] = 0
+
+y6 = y6 %>% add_row(mes_ausencia = 2, ratio = 0)
+
+
+y7 = y7 %>% add_row(mes_ausencia = 1, ratio = 0)
+y7 = y7 %>% add_row(mes_ausencia = 3, ratio = 0)
+y7 = y7 %>% add_row(mes_ausencia = 6, ratio = 0)
+
+
+y8 = y8 %>% add_row(mes_ausencia = 1, ratio = 0)
+y8 = y8 %>% add_row(mes_ausencia = 2, ratio = 0)
+y8 = y8 %>% add_row(mes_ausencia = 3, ratio = 0)
+
+y9 = y9 %>% add_row(mes_ausencia = 11, ratio = 0)
+y9 = y9 %>% add_row(mes_ausencia = 12, ratio = 0)
+
+
+
+y10 = y10 %>% add_row(mes_ausencia = 1, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 2, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 3, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 4, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 5, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 6, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 7, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 9, ratio = 0)
+y10 = y10 %>% add_row(mes_ausencia = 10, ratio = 0)
+
+
+
+y$mes[y$mes_ausencia == 1] = "Ene"
+y$mes[y$mes_ausencia == 2] = "Feb"
+y$mes[y$mes_ausencia == 3] = "Mar"
+y$mes[y$mes_ausencia == 4] = "Abr"
+y$mes[y$mes_ausencia == 5] = "May"
+y$mes[y$mes_ausencia == 6] = "Jun"
+y$mes[y$mes_ausencia == 7] = "Jul"
+y$mes[y$mes_ausencia == 8] = "Ago"
+y$mes[y$mes_ausencia == 9] = "Sep"
+y$mes[y$mes_ausencia == 10] = "Oct"
+y$mes[y$mes_ausencia == 11] = "Nov"
+y$mes[y$mes_ausencia == 12] = "Dic"
+
+
+y1$mes[y1$mes_ausencia == 1] = "Ene"
+y1$mes[y1$mes_ausencia == 2] = "Feb"
+y1$mes[y1$mes_ausencia == 3] = "Mar"
+y1$mes[y1$mes_ausencia == 4] = "Abr"
+y1$mes[y1$mes_ausencia == 5] = "May"
+y1$mes[y1$mes_ausencia == 6] = "Jun"
+y1$mes[y1$mes_ausencia == 7] = "Jul"
+y1$mes[y1$mes_ausencia == 8] = "Ago"
+y1$mes[y1$mes_ausencia == 9] = "Sep"
+y1$mes[y1$mes_ausencia == 10] = "Oct"
+y1$mes[y1$mes_ausencia == 11] = "Nov"
+y1$mes[y1$mes_ausencia == 12] = "Dic"
+
+
+y2$mes[y2$mes_ausencia == 1] = "Ene"
+y2$mes[y2$mes_ausencia == 2] = "Feb"
+y2$mes[y2$mes_ausencia == 3] = "Mar"
+y2$mes[y2$mes_ausencia == 4] = "Abr"
+y2$mes[y2$mes_ausencia == 5] = "May"
+y2$mes[y2$mes_ausencia == 6] = "Jun"
+y2$mes[y2$mes_ausencia == 7] = "Jul"
+y2$mes[y2$mes_ausencia == 8] = "Ago"
+y2$mes[y2$mes_ausencia == 9] = "Sep"
+y2$mes[y2$mes_ausencia == 10] = "Oct"
+y2$mes[y2$mes_ausencia == 11] = "Nov"
+y2$mes[y2$mes_ausencia == 12] = "Dic"
+
+
+y3$mes[y3$mes_ausencia == 1] = "Ene"
+y3$mes[y3$mes_ausencia == 2] = "Feb"
+y3$mes[y3$mes_ausencia == 3] = "Mar"
+y3$mes[y3$mes_ausencia == 4] = "Abr"
+y3$mes[y3$mes_ausencia == 5] = "May"
+y3$mes[y3$mes_ausencia == 6] = "Jun"
+y3$mes[y3$mes_ausencia == 7] = "Jul"
+y3$mes[y3$mes_ausencia == 8] = "Ago"
+y3$mes[y3$mes_ausencia == 9] = "Sep"
+y3$mes[y3$mes_ausencia == 10] = "Oct"
+y3$mes[y3$mes_ausencia == 11] = "Nov"
+
+
+y4$mes[y4$mes_ausencia == 1] = "Ene"
+y4$mes[y4$mes_ausencia == 2] = "Feb"
+y4$mes[y4$mes_ausencia == 3] = "Mar"
+y4$mes[y4$mes_ausencia == 4] = "Abr"
+y4$mes[y4$mes_ausencia == 5] = "May"
+y4$mes[y4$mes_ausencia == 6] = "Jun"
+y4$mes[y4$mes_ausencia == 7] = "Jul"
+y4$mes[y4$mes_ausencia == 8] = "Ago"
+y4$mes[y4$mes_ausencia == 9] = "Sep"
+y4$mes[y4$mes_ausencia == 10] = "Oct"
+y4$mes[y4$mes_ausencia == 11] = "Nov"
+y4$mes[y4$mes_ausencia == 12] = "Dic"
+
+
+grafico6 = plot_ly() %>% 
+  add_trace(y, x = ~x, y = ~y$ratio, name= "ADM.", type = 'bar',
+            marker = list(color = "#ff54f4", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: ADM.', '<br>Ratio:', y$ratio)) %>% 
+  add_trace(y1, x = ~x, y = ~y1$ratio, name= "SERVICIOS", type = 'bar',
+
+            marker = list(color = "#0dbaff", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: SERVICIOS', '<br>Ratio:', y1$ratio)) %>% 
+  add_trace(y2, x = ~x, y = ~y2$ratio, name= "SUCURSALES", type = 'bar',
+
+            marker = list(color = "#0dffd3", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: SUCURSALES', '<br>Ratio:', y2$ratio)) %>% 
+  add_trace(y3, x = ~x, y = ~y3$ratio, name= "TESO", type = 'bar',
+
+            marker = list(color = "#ff7a0d", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: TESO', '<br>Ratio:', y3$ratio)) %>% 
+  add_trace(y4, x = ~x, y = ~y4$ratio, name= "FISCA", type = 'bar',
+
+            marker = list(color = "#0d66ff", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: FISCA', '<br>Ratio:', y4$ratio)) %>% 
+   add_trace(y5, x = ~x, y = ~y5$ratio, name= "S & H", type = 'bar',
+
+            marker = list(color = "#e68875", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: S & H', '<br>Ratio:', y5$ratio)) %>% 
+   add_trace(y6, x = ~x, y = ~y6$ratio, name= "PROMOS", type = 'bar',
+
+            marker = list(color = "#e6dd75", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: PROMOS', '<br>Ratio:', y6$ratio)) %>% 
+   add_trace(y7, x = ~x, y = ~y7$ratio, name= "AT. CTE.", type = 'bar',
+
+            marker = list(color = "#75d1e6", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: AT. CTE.', '<br>Ratio:', y7$ratio)) %>% 
+  add_trace(y8, x = ~x, y = ~y8$ratio, name= "HR", type = 'bar',
+
+            marker = list(color = "#e6759d", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: HR', '<br>Ratio:', y8$ratio)) %>% 
+    add_trace(y9, x = ~x, y = ~y9$ratio, name= "CONTABLE", type = 'bar',
+
+            marker = list(color = "#b975e6", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: CONTABLE', '<br>Ratio:', y9$ratio)) %>% 
+    add_trace(y10, x = ~x, y = ~y10$ratio, name= "SISTEMAS", type = 'bar',
+
+            marker = list(color = "#7591e6", alpha = 0.5,
+                          line = list(color = 'black', width = 1.5)),
+            hoverinfo = 'text',
+            text = ~paste('Sector: SISTEMAS', '<br>Ratio:', y10$ratio)) %>% 
+  layout(title = "Ratio Total HS Extras / Faltas Totales por Sector",
+         hovermode = "compare",
+         barmode = 'group', 
+         xaxis = list(title = "Mes", tickangle = -45, autotick = FALSE, tick0 = 0, tickd = seq(0, 12, 1)),
+         yaxis = list(title = "Hs Extras / Faltas")) 
+
+grafico6
+
+```
+
+
+
+Column {data-width=30%}
+-----------------------------------------------------------------------
+
+
+### ***Pie Chart:*** 
+
+
+```{r}
+
+
+fig <- plot_ly(df_doble_eje, labels = ~sector_res, values = ~round(((hs_extra_al_50 + hs_extra_al_100)/faltas),2), type = 'pie',
+        textposition = 'inside',
+        textinfo = 'label+percent',
+        insidetextfont = list(color = 'white'),
+        hoverinfo = 'text',
+        text = ~paste('Por cada Falta del sector', sector_res,':' ,'\nSe necesitan: ', round(((hs_extra_al_50 + hs_extra_al_100)/faltas),0),'Horas Extras'),
+        marker = list(
+                      line = list(color = 'white', width = 1)),
+        showlegend = TRUE)
+fig <- fig %>% layout(title = 'Ratio Horas Extras totales y Faltas por Sector',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)) %>% 
+  add_annotations(
+    xref="paper",
+    yref="paper",
+    x=1,
+    y=-0,
+    text="Sumatoria del total\nde Horas Extras\nDividido el total\nde Faltas Por Sector.",
+    showarrow= F
+  )
+
+fig
+
+
+
+```
+
+
+
+
+
+
+Conclusiones
+=======================================================================
+**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+
+
+
+
+Column 
+-----------------------------------------------------------------------
+
+### ***Conclusiones del Trabajo People Analytics:*** 
+
+
+**Conclusiones generales:**
+
+_Pudimos ver, a lo largo del trabajo, que existe una relación entre las Faltas por Sector y el consumo de Horas Extras. Tambien pudimos observar los sectores que mas necesitan Horas Extras por Faltas y los empleados que mas faltan y los motivos principales del ausentismo._
+
+_Nos intereso, principalmente, la relación entre las variables para poder de manera indirecta ver el incremento del costo salarial producto de las Horas Extras de lo empleados._
+
+
+..
+
+
+**Correlación de Pearson entre faltas y horas extra:**
+
+
+$$\rho = \frac{\text{cov}(X,Y)}{\sigma_x \sigma_y}$$
+_Es el cociente entre la covarianza de las variables y el producto de los desvíos estándar de las variables X e Y_
+
+
+```{r}
+
+cat('Correlacion positiva de:',round(cor(df_doble_eje$faltas, df_doble_eje$hs_extra_al_50),2))
+
+
+
+```
+
+
+..
+
+
+**Preguntas de PA:**
+
+_¿Como podemos desde People Analytics tomar decisiones basadas en Datos?._
+
+_A través del Dashboard y estadística descriptiva pudimos observar empleados y sectores donde podríamos atender diferentes situaciones relacionadas al ausentismo y a las horas extras necesarias para cumplir con el trabajo a los efectos de poder reducir las faltas, hacer mas eficientes los sectores en el caso de que necesiten mas personal como también ver los motivos principales por los cuales se producen ausentismos y en que periodos._
+
+
+_La toma de decisiones basadas en datos parten de la lógica del asunto que necesitamos atender, luego plasmar los datos y prepararlos para visualizarlos, estos mismos los podemos convertir en información ya sea con simples gráficos o cálculos estadísticos para la toma de decisiones. Este trabajo se centro en el estudio planteado en la hipótesis y en la toma de decisiones basadas en datos._
+
+_Si bien durante la exposición de la PPT demostramos que existía relación entre las variables que hicieron rechazar la H0, a lo largo de la exploración notamos fenómenos que nos dispararon distintas preguntas las cuales las compartimos a continuación:_
+
+_1)	¿Hay un organigrama desbalanceado que hace que ante una “X” cantidad de ausentes sobrevenga casi el doble de hs. consumidas en extras (en línea general)._
+
+_2)	Dado que la mayoría de las ausencias se producen por enfermedad; ¿Qué tipo de acciones preventivas se pueden llevar adelante desde la empresa?_
+
+_3)	Ante el otorgamiento de extras; ¿la gerencia podría administrar más eficientemente la regulación sobre el consumo de estas?_
+
+_4)	¿Es posible re diseñar un esquema de polivalencia intrasectores? En el cual, ante la ausencia de un colaborador en un sector “X” pueda ser cubierto por una persona del sector “Y”._
+
+_5)	¿El ausentismo se relaciona con la baja rotación de las personas?_
+
+_6)	¿Existe una falta de capital humano y los que existen faltan producto del agotamiento en las operaciones?_
+
+**Estas son solo algunas preguntas que nos invitan a la reflexión disparadas tras el análisis de dos variables. Consideramos que las prácticas de People Analytics serán en el futuro próximo eje central de las operaciones en las organizaciones.**
+
+
+..
+
+
+**Maestrandos:**
+
+_Elizabeth Salas, Emmanuel Beilmann y Maximiliano Galoto_
+
+..
