@@ -81,7 +81,7 @@ df_doble_eje = df %>% select(empleado, sector_res, total_faltas, hs_extra_50, hs
 Estructura
 =====================================
 
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 Column {data-width=10%} 
 -----------------------------------------------------------
@@ -356,7 +356,7 @@ fig
 Ausentismo {data-orientation=rows}
 =====================================
 
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -570,7 +570,7 @@ grafico
 Heath Map
 =====================================
 
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1076,7 +1076,7 @@ ggplotly(hm, tooltip = 'text')
 Dinámica Faltas y Hs Extras
 =====================================
 
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1164,7 +1164,7 @@ colnames(df_c_edit)[1] = 'sector_res'
 Horas Extras {data-orientation=rows}
 =====================================
 
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1487,7 +1487,7 @@ fig
 
 Faltas y Horas Extras
 =======================================================================
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1561,7 +1561,7 @@ plot_ly(df_doble_eje) %>%
 Scatter Plots
 =====================================
 
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1745,7 +1745,7 @@ ggplotly(pg, tooltip = "text")
 
 Análisis de Faltas
 =======================================================================
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1830,7 +1830,7 @@ ggplotly(bx, tooltip="text")
 
 Matriz de Distancia
 =======================================================================
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -1921,7 +1921,7 @@ ggplotly(matrix_distancia)
 
 Ratios
 =======================================================================
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -2202,7 +2202,7 @@ fig
 
 Conclusiones
 =======================================================================
-**Maestría en Ciencia de Datos e Innovación Empresarial: _Inteligencia y Analítica de Negocios._**
+**Inteligencia y Analítica de Negocios: Una relación entre ausentismo y horas extra._**
 
 
 
@@ -2270,9 +2270,3 @@ _6)	¿Existe una falta de capital humano y los que existen faltan producto del a
 
 ..
 
-
-**Maestrandos:**
-
-_Elizabeth Salas, Emmanuel Beilmann y Maximiliano Galoto_
-
-..
