@@ -11,6 +11,10 @@ Las conclusiones del trabajo se encuentran en el dashboard:
 
 https://rpubs.com/MGaloto/People_Analytics
 
+## Dash
+
+![.](plot/dash.png)
+
 
 ## Treemap
 
