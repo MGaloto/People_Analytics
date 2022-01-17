@@ -17,11 +17,11 @@ https://rpubs.com/MGaloto/People_Analytics
 <ui>
 
 <li>
-_Estadística Descriptiva_
+Estadística Descriptiva
 </li>
 
 <li>
-_Visualizacion_
+Visualizacion
 </li>
 
 
@@ -33,15 +33,15 @@ _Visualizacion_
 <ui>
 
 <li>
-_{plotly}_
+{plotly}
 </li>
 
 <li>
-_{gganimate}_
+{gganimate}
 </li>
 
 <li>
-_{tidyverse}_
+{tidyverse}
 </li>
 
 
