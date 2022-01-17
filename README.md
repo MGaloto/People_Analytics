@@ -11,6 +11,43 @@ Las conclusiones del trabajo se encuentran en el dashboard:
 
 https://rpubs.com/MGaloto/People_Analytics
 
+
+# Incluye
+
+<ui>
+
+<li>
+_Estadística Descriptiva_
+</li>
+
+<li>
+_Visualizacion_
+</li>
+
+
+</ui>
+
+
+# Paquetes de R
+
+<ui>
+
+<li>
+_{plotly}_
+</li>
+
+<li>
+_{gganimate}_
+</li>
+
+<li>
+_{tidyverse}_
+</li>
+
+
+</ui>
+
+
 ## Dash
 
 ![.](plot/dash.png)
