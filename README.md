@@ -11,7 +11,7 @@
 
 
 # People_Analytics
-Final Proyect PA in Flexdashboard.
+Final Project PA in Flexdashboard.
 
 Proyecto Final
 
