@@ -16,9 +16,7 @@
 
 Proyecto Final
 
-Proyecto terminado sobre People Analytics.
-
-Se analizan dos variables: Ausentismo y Horas Extras
+Se analizan dos variables: Ausentismo y Horas Extras de una empresa X
 
 Las conclusiones del trabajo se encuentran en el dashboard:
 
