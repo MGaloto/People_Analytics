@@ -26,16 +26,12 @@ https://rpubs.com/MGaloto/People_Analytics
 # Incluye
 
 <ui>
-
 <li>
 Estadística Descriptiva
 </li>
-
 <li>
 Visualizacion
 </li>
-
-
 </ui>
 
 
@@ -46,20 +42,46 @@ Visualizacion
 <li>
 {plotly}
 </li>
-
 <li>
 {gganimate}
 </li>
-
 <li>
 {tidyverse}
 </li>
-
-
 </ui>
 
 
-## Dash
+# Motivación
+
+Como su nombre lo indica, el paquete flexdashboard proporciona un marco flexible para crear tableros. Es parte del ecosistema Rmarkdown y tiene las siguientes características:
+
+- Simple
+- Establezca el diseño del tablero con el uso de formato de filas y columnas
+- Personalice el tema del tablero usando CSS o el paquete bslib
+- Use widgets integrados, como cuadros de valor y medidores
+- Cree paneles interactivos (y sin servidor) aprovechando las herramientas de visualización de datos de R (p. ej., Plotly, highcharter, dychart, prospecto, etc.), tablas (gt, reactable, reactablefrm, kable, etc.) y - herramientas htmlwidges como crosstalk.
+- Cree tableros dinámicos con Shiny
+
+Mediante un tablero de esta naturaleza se pueden presentar trabajos de agregacion de grandes volumenes de datos y explicar, mediante la visualizacion, gran parte de la informacion oculta que tienen los datos. 
+
+En este trabajo en particular se hace un analisis sobre la relacion de ausentismo y horas extra por departamento en una empresa X. 
+
+
+```r
+---
+title: "People Analytics"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: cosmo
+    logo: favicon_48x48.png
+    favicon: favicon_48x48.png
+---
+```
+
+
+## Dash Final
 
 ![.](plot/dash.png)
 
