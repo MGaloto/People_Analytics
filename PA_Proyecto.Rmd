@@ -28,31 +28,19 @@ color:white!important;
 
 ```{r setup, include=FALSE}
 
-library(rapportools)
+
 library(shiny)
 library(DT)
 library(tidyverse)
-library(tidytext)
-library(wordcloud2)
-library(ggplot2)
-library(ggthemes)
 library(viridisLite)
-library(dplyr)
 library(plotly)
-library(quantmod)
 library(highcharter)
-library(tidyverse)
 library(ggplot2)
 library(corrplot) 
-library(GGally)
 library(readr)  
 library(dplyr)  
-library(crayon) 
-library(modeest)
 library(readxl)
 library(ggthemes)
-library(reshape)
-library(scales)
 library(gganimate)
 theme_set(theme_bw())
 library(gapminder)
@@ -61,6 +49,7 @@ library(gifski)
 
 
 df = read_excel('df_rrhh_2.xlsx')
+
 
 
 
